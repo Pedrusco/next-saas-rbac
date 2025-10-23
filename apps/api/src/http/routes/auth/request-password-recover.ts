@@ -1,7 +1,8 @@
-import { prisma } from '@/lib/prisma';
-import type { FastifyInstance } from 'fastify';
-import type { ZodTypeProvider } from 'fastify-type-provider-zod';
-import z from 'zod';
+import type { FastifyInstance } from 'fastify'
+import type { ZodTypeProvider } from 'fastify-type-provider-zod'
+import z from 'zod'
+
+import { prisma } from '@/lib/prisma'
 
 export async function requestPasswordRecover(app: FastifyInstance) {
   app.withTypeProvider<ZodTypeProvider>().post(
@@ -19,17 +20,17 @@ export async function requestPasswordRecover(app: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const { email } = request.body;
+      const { email } = request.body
 
       const userFromEmail = await prisma.user.findUnique({
         where: {
           email,
         },
-      });
+      })
 
       if (!userFromEmail) {
         // We don't reveal that the email doesn't exist
-        return reply.status(201).send();
+        return reply.status(201).send()
       }
 
       const { id: code } = await prisma.token.create({
@@ -37,13 +38,13 @@ export async function requestPasswordRecover(app: FastifyInstance) {
           type: 'PASSWORD_RECOVER',
           userId: userFromEmail.id,
         },
-      });
+      })
 
       // Send e-mail with password recover link
 
-      console.log('Recover password token: ', code);
+      console.log('Recover password token: ', code)
 
-      return reply.status(201).send();
-    }
-  );
+      return reply.status(201).send()
+    },
+  )
 }

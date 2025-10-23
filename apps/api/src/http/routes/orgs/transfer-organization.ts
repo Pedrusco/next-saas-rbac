@@ -1,12 +1,14 @@
-import { auth } from '@/http/middlewares/auth';
-import { prisma } from '@/lib/prisma';
-import { getUserPermissions } from '@/utils/get-user-permissions';
-import { organizationSchema } from '@saas/auth';
-import type { FastifyInstance } from 'fastify';
-import type { ZodTypeProvider } from 'fastify-type-provider-zod';
-import z from 'zod';
-import { BadRequestError } from '../_errors/bad-request-error';
-import { UnauthorizedError } from '../_errors/unauthorized-error';
+import { organizationSchema } from '@saas/auth'
+import type { FastifyInstance } from 'fastify'
+import type { ZodTypeProvider } from 'fastify-type-provider-zod'
+import z from 'zod'
+
+import { auth } from '@/http/middlewares/auth'
+import { prisma } from '@/lib/prisma'
+import { getUserPermissions } from '@/utils/get-user-permissions'
+
+import { BadRequestError } from '../_errors/bad-request-error'
+import { UnauthorizedError } from '../_errors/unauthorized-error'
 
 export async function transferOrganization(app: FastifyInstance) {
   app
@@ -31,23 +33,23 @@ export async function transferOrganization(app: FastifyInstance) {
         },
       },
       async (request, reply) => {
-        const { slug } = request.params;
+        const { slug } = request.params
 
-        const userId = await request.getCurrentUserId();
+        const userId = await request.getCurrentUserId()
         const { membership, organization } =
-          await request.getUserMembership(slug);
+          await request.getUserMembership(slug)
 
-        const authOrganization = organizationSchema.parse(organization);
+        const authOrganization = organizationSchema.parse(organization)
 
-        const { cannot } = getUserPermissions(userId, membership.role);
+        const { cannot } = getUserPermissions(userId, membership.role)
 
         if (cannot('transfer_ownership', authOrganization)) {
           throw new UnauthorizedError(
-            `You're not allowed to transfer this organization ownership.`
-          );
+            `You're not allowed to transfer this organization ownership.`,
+          )
         }
 
-        const { transferToUserId } = request.body;
+        const { transferToUserId } = request.body
 
         const transferToMembership = await prisma.member.findUnique({
           where: {
@@ -56,12 +58,12 @@ export async function transferOrganization(app: FastifyInstance) {
               userId: transferToUserId,
             },
           },
-        });
+        })
 
         if (!transferToMembership) {
           throw new BadRequestError(
-            'Target user is not a member of this organization.'
-          );
+            'Target user is not a member of this organization.',
+          )
         }
 
         await prisma.$transaction([
@@ -81,9 +83,9 @@ export async function transferOrganization(app: FastifyInstance) {
             where: { id: organization.id },
             data: { ownerId: transferToUserId },
           }),
-        ]);
+        ])
 
-        return reply.status(204).send();
-      }
-    );
+        return reply.status(204).send()
+      },
+    )
 }

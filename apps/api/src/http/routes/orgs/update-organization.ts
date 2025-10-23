@@ -1,12 +1,14 @@
-import { auth } from '@/http/middlewares/auth';
-import { prisma } from '@/lib/prisma';
-import { getUserPermissions } from '@/utils/get-user-permissions';
-import { organizationSchema } from '@saas/auth';
-import type { FastifyInstance } from 'fastify';
-import type { ZodTypeProvider } from 'fastify-type-provider-zod';
-import z from 'zod';
-import { BadRequestError } from '../_errors/bad-request-error';
-import { UnauthorizedError } from '../_errors/unauthorized-error';
+import { organizationSchema } from '@saas/auth'
+import type { FastifyInstance } from 'fastify'
+import type { ZodTypeProvider } from 'fastify-type-provider-zod'
+import z from 'zod'
+
+import { auth } from '@/http/middlewares/auth'
+import { prisma } from '@/lib/prisma'
+import { getUserPermissions } from '@/utils/get-user-permissions'
+
+import { BadRequestError } from '../_errors/bad-request-error'
+import { UnauthorizedError } from '../_errors/unauthorized-error'
 
 export async function updateOrganization(app: FastifyInstance) {
   app
@@ -33,22 +35,22 @@ export async function updateOrganization(app: FastifyInstance) {
         },
       },
       async (request, reply) => {
-        const { slug } = request.params;
+        const { slug } = request.params
 
-        const userId = await request.getCurrentUserId();
+        const userId = await request.getCurrentUserId()
         const { membership, organization } =
-          await request.getUserMembership(slug);
+          await request.getUserMembership(slug)
 
-        const { name, domain, shouldAttachUsersByDomain } = request.body;
+        const { name, domain, shouldAttachUsersByDomain } = request.body
 
-        const authOrganization = organizationSchema.parse(organization);
+        const authOrganization = organizationSchema.parse(organization)
 
-        const { cannot } = getUserPermissions(userId, membership.role);
+        const { cannot } = getUserPermissions(userId, membership.role)
 
         if (cannot('update', authOrganization)) {
           throw new UnauthorizedError(
-            `You're not allowed to update this organization.`
-          );
+            `You're not allowed to update this organization.`,
+          )
         }
 
         if (domain) {
@@ -59,12 +61,12 @@ export async function updateOrganization(app: FastifyInstance) {
                 not: organization.id,
               },
             },
-          });
+          })
 
           if (organizationByDomain) {
             throw new BadRequestError(
-              'Another organization with same domain already exists.'
-            );
+              'Another organization with same domain already exists.',
+            )
           }
         }
 
@@ -77,9 +79,9 @@ export async function updateOrganization(app: FastifyInstance) {
             domain,
             shouldAttachUsersByDomain,
           },
-        });
+        })
 
-        return reply.status(204).send();
-      }
-    );
+        return reply.status(204).send()
+      },
+    )
 }
