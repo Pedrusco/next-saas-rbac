@@ -48,7 +48,7 @@ export async function resetPassword(app: FastifyInstance) {
           },
         }),
 
-        prisma.user.delete({
+        prisma.token.delete({
           where: {
             id: code,
           },
