@@ -5,8 +5,6 @@ import z from 'zod'
 
 import { prisma } from '@/lib/prisma'
 
-import { BadRequestError } from '../_errors/bad-request-error'
-
 export async function authenticateWithGitHub(app: FastifyInstance) {
   app.withTypeProvider<ZodTypeProvider>().post(
     '/sessions/github',
@@ -81,21 +79,52 @@ export async function authenticateWithGitHub(app: FastifyInstance) {
         })
         .parse(githubUserData)
 
-      if (email === null) {
-        throw new BadRequestError(
-          'Your GitHub account must have an email to athenticate.',
+      let resolvedEmail = email
+
+      if (resolvedEmail === null) {
+        const emailsResponse = await fetch(
+          'https://api.github.com/user/emails',
+          {
+            headers: {
+              Authorization: `Bearer ${githubAccessToken}`,
+              Accept: 'application/vnd.github+json',
+            },
+          },
         )
+        // If GitHub returns non-2xx, parse body if possible and throw a bad request
+        // to be consistent with existing error handling.
+        const emailsData = await emailsResponse.json()
+
+        const emails = z
+          .array(
+            z.object({
+              email: z.email(),
+              primary: z.boolean().optional(),
+              verified: z.boolean().optional(),
+              visibility: z.string().nullable().optional(),
+            }),
+          )
+          .parse(emailsData)
+
+        const primaryVerified = emails.find((e) => e.primary && e.verified)
+        const firstVerified = emails.find((e) => e.verified)
+
+        resolvedEmail =
+          primaryVerified?.email ??
+          firstVerified?.email ??
+          emails[0]?.email ??
+          null
       }
 
       let user = await prisma.user.findUnique({
-        where: { email },
+        where: { email: resolvedEmail },
       })
 
       if (!user) {
         user = await prisma.user.create({
           data: {
             name,
-            email,
+            email: resolvedEmail,
             avatarUrl,
           },
         })

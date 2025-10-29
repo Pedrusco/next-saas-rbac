@@ -16,7 +16,25 @@ export async function GET(request: NextRequest) {
     )
   }
 
-  const { token } = await signInWithGitHub({ code })
+  let token: string
+
+  try {
+    const result = await signInWithGitHub({ code })
+
+    token = result.token
+  } catch (err) {
+    // If the API responded with a non-2xx status (for example: missing email),
+    // signInWithGitHub will throw. Avoid letting the error bubble and return a
+    // safe redirect to the sign-in page with an error query so the UI can show
+    // a friendly message instead of a 500 page.
+
+    const redirectUrl = request.nextUrl.clone()
+
+    redirectUrl.pathname = '/auth/sign-in'
+    redirectUrl.searchParams.set('error', 'github')
+
+    return NextResponse.redirect(redirectUrl)
+  }
 
   const cookieStore = await cookies()
 
